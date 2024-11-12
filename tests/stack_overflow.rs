@@ -4,8 +4,8 @@
 
 use core::panic::PanicInfo;
 use lazy_static::lazy_static;
+use rust_os::{exit_qemu, serial_print, serial_println, QemuExitCode};
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-use rust_os::{exit_qemu, QemuExitCode, serial_print, serial_println};
 
 lazy_static! {
     static ref TEST_IDT: InterruptDescriptorTable = {
@@ -38,7 +38,7 @@ pub fn init_test_idt() {
 #[allow(unconditional_recursion)]
 fn stack_overflow() {
     stack_overflow(); // for each recursion, the return address is pushed
-    // 防止尾递归优化，不然优化成循环是不会爆栈的
+                      // 防止尾递归优化，不然优化成循环是不会爆栈的
     volatile::Volatile::new(0).read(); // prevent tail recursion optimizations
 }
 

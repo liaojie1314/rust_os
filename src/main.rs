@@ -12,7 +12,7 @@ use rust_os::println;
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     println!("{}", _info);
-    loop {}
+    rust_os::hlt_loop();
 }
 
 #[cfg(test)]
@@ -31,13 +31,20 @@ pub extern "C" fn _start() -> ! {
     // unsafe {
     //     *(0xdeadbeef as *mut u8) = 42;
     // }
-    fn stack_overflow() {
-        stack_overflow(); // for each recursion, the return address is pushed
-    }
+    // this is for "double fault" demonstration
+    // fn stack_overflow() {
+    //     stack_overflow(); // for each recursion, the return address is pushed
+    // }
     // trigger a stack overflow
-    stack_overflow();
+    // stack_overflow();
     #[cfg(test)]
     test_main();
     println!("It did not crash!");
-    loop {}
+    rust_os::hlt_loop();
+    // loop {
+    //     // deadlock
+    //     // use rust_os::print;
+    //     // for _ in 0..10000 {}
+    //     // print!("-");
+    // }
 }
