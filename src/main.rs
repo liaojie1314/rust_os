@@ -27,73 +27,31 @@ entry_point!(kernel_main);
 #[no_mangle]
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use rust_os::memory;
-    use x86_64::{structures::paging::Translate, VirtAddr};
+    use rust_os::memory::BootInfoFrameAllocator;
+    use x86_64::{
+        structures::paging::{Page, Translate},
+        VirtAddr,
+    };
 
     println!("https://www.{}.blog", "yuanyuan");
     rust_os::init();
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mapper = unsafe { memory::init(phys_mem_offset) };
-    let addresses = [
-        // the identity-mapped vga buffer page
-        0xb8000,
-        // some code page
-        0x201008,
-        // some stack page
-        0x0100_0020_1a10,
-        // virtual address mapped to physical address 0
-        boot_info.physical_memory_offset,
-        // not mapped eg:0 -> None
-        0,
-    ];
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator = unsafe {
+        BootInfoFrameAllocator::init(&boot_info.memory_map)
+    };
 
-    for &address in &addresses {
-        let virt = VirtAddr::new(address);
-        let phys = mapper.translate_addr(virt);
-        println!("{:?} -> {:?}", virt, phys);
-        unsafe {
-            let x = *(address as *mut u8);
-            println!("{:?} contains {:}", address, x); // 0 -> panic
-        }
-    }
-    /// 调用断点异常 insert an int3 to trigger a breakpoint exception
-    /// ```rust
-    /// x86_64::instructions::interrupts::int3();
-    /// // trigger a page fault exception
-    /// unsafe {
-    ///     *(0xdeadbeef as *mut u8) = 42;
-    /// }
-    /// ```
-    /// this is for "double fault" demonstration
-    /// ```rust
-    /// fn stack_overflow() {
-    ///     stack_overflow(); // for each recursion, the return address is pushed
-    /// }
-    /// // trigger a stack overflow
-    /// stack_overflow();
-    /// ```
-    ///
-    /// ```rust
-    /// let ptr = 0x20453c as *mut u8;
-    /// // read from a code page
-    /// unsafe {
-    ///     let x = *ptr;
-    /// }
-    /// println!("read worked");
-    /// unsafe {
-    ///     *ptr = 42;
-    /// }
-    /// println!("write worked");
-    /// ```
+    // map an unused page
+    let page = Page::containing_address(VirtAddr::new(0xdeadbeaf000));
+    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+
+    // write the string `New!` to the screen through the new mapping
+    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e) };
 
     #[cfg(test)]
     test_main();
     println!("It did not crash!");
     rust_os::hlt_loop();
-    // loop {
-    //     // deadlock
-    //     // use rust_os::print;
-    //     // for _ in 0..10000 {}
-    //     // print!("-");
-    // }
 }
