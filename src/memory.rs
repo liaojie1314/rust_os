@@ -32,14 +32,12 @@ impl BootInfoFrameAllocator {
         }
     }
     /// Returns an iterator over the usable frames specified in the memory map.
-    fn usable_frames(&self) -> impl Iterator<Item=PhysFrame> {
+    fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
         // get usable regions from memory map
         let regions = self.memory_map.iter();
-        let usable_regions = regions
-            .filter(|r| r.region_type == MemoryRegionType::Usable);
+        let usable_regions = regions.filter(|r| r.region_type == MemoryRegionType::Usable);
         // map each region to its address range
-        let addr_ranges = usable_regions
-            .map(|r| r.range.start_addr()..r.range.end_addr());
+        let addr_ranges = usable_regions.map(|r| r.range.start_addr()..r.range.end_addr());
         // transform to an iterator of frame start addresses
         let frame_addresses = addr_ranges.flat_map(|r| r.step_by(4096));
         // create `PhysFrame` types from the start addresses
@@ -97,6 +95,7 @@ pub fn create_example_mapping(
     // Virtual 0x00000 -> 0xb8000
     // 需要 Level 1 新添一项
     // 0x0所在的页，由于bootloader的存在，其一级页表已经出现在物理内存里，而且被映射过了
+    // 0->4KiB本身没有被映射，但是其所在的一级页表的其他页被映射过，那么这里就不需要一个额外的物理内存分配，来容纳新的一张页表
     use x86_64::structures::paging::PageTableFlags as Flags;
 
     let frame = PhysFrame::containing_address(PhysAddr::new(0xb8000));
