@@ -1,8 +1,8 @@
-use core::mem;
 use super::align_up;
-use alloc::alloc::{GlobalAlloc, Layout};
-use core::ptr;
 use crate::allocator::Locked;
+use alloc::alloc::{GlobalAlloc, Layout};
+use core::mem;
+use core::ptr;
 
 /// 用链表管理可用内存，不受"连续性"限制
 /// + 优点：可以直接"复用"内存，所以更通用
@@ -122,7 +122,7 @@ impl LinkedListAllocator {
             .expect("adjusting alignment failed")
             .pad_to_align();
         let size = layout.size().max(size_of::<ListNode>());
-        (size,layout.align())
+        (size, layout.align())
     }
 }
 
@@ -132,14 +132,14 @@ unsafe impl GlobalAlloc for Locked<LinkedListAllocator> {
         let (size, align) = LinkedListAllocator::size_align(layout);
         let mut allocator = self.lock();
 
-        if let Some((region,alloc_start)) = allocator.find_region(size,align){
+        if let Some((region, alloc_start)) = allocator.find_region(size, align) {
             let alloc_end = alloc_start.checked_add(size).expect("overflow");
-            let excess_size = region.end_addr()-alloc_end;
+            let excess_size = region.end_addr() - alloc_end;
             if excess_size > 0 {
-                allocator.add_free_region(alloc_end,excess_size);
+                allocator.add_free_region(alloc_end, excess_size);
             }
             alloc_start as *mut u8
-        }else {
+        } else {
             ptr::null_mut()
         }
     }
