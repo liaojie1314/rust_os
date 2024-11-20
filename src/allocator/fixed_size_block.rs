@@ -1,6 +1,9 @@
 use super::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
-use core::{mem,ptr::{self,NonNull}};
+use core::{
+    mem,
+    ptr::{self, NonNull},
+};
 
 /// 在碎片和分配性能间作取舍，引入一些固定大小的内存"基本单元",以及多个链表
 ///

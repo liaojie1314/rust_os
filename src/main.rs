@@ -5,13 +5,10 @@
 #![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
-use alloc::boxed::Box;
-use alloc::rc::Rc;
-use alloc::vec;
-use alloc::vec::Vec;
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use rust_os::println;
+use rust_os::task::{simple_executor::SimpleExecutor, Task};
 
 //这个函数将在 panic 发生时被调用
 #[cfg(not(test))]
@@ -45,32 +42,23 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
     allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
-    // allocate a number on the heap
-    let heap_value = Box::new(41);
-    println!("heap_value at {:p}", heap_value);
-
-    // create a dynamically sized vector
-    let mut vec = Vec::new();
-    for i in 0..500 {
-        vec.push(i);
-    }
-    println!("vec at {:p}", vec.as_slice());
-
-    // create a reference counted vector -> will be freed when count reaches 0
-    let reference_counted = Rc::new(vec![1, 2, 3]);
-    let clone_reference = reference_counted.clone();
-    println!(
-        "current reference count is {}",
-        Rc::strong_count(&clone_reference)
-    );
-    drop(reference_counted);
-    println!(
-        "reference count is {} now",
-        Rc::strong_count(&clone_reference)
-    );
+    let mut executor = SimpleExecutor::new();
+    executor.spawn(Task::new(example_task())); // fork or CreateBewProcess
+    executor.run();
 
     #[cfg(test)]
     test_main();
     println!("It did not crash!");
     rust_os::hlt_loop();
+}
+
+// Below is the example_task function again so that you don't have to scroll up
+
+async fn async_number() -> u32 {
+    42
+}
+
+async fn example_task() {
+    let number = async_number().await;
+    println!("async number: {}", number);
 }
