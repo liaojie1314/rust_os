@@ -9,7 +9,7 @@ use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
 use rust_os::println;
 use rust_os::task::executor::Executor;
-use rust_os::task::{keyboard, simple_executor::SimpleExecutor, Task};
+use rust_os::task::{keyboard, Task};
 
 //这个函数将在 panic 发生时被调用
 #[cfg(not(test))]
@@ -50,9 +50,6 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
     executor.spawn(Task::new(example_task())); // fork or CreateBewProcess
     executor.spawn(Task::new(keyboard::print_keypresses()));
     executor.run();
-
-    println!("It did not crash!");
-    rust_os::hlt_loop();
 }
 
 // Below is the example_task function again so that you don't have to scroll up
